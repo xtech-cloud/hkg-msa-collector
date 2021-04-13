@@ -1,9 +1,10 @@
 package handler
 
 import (
-    "time"
 	"context"
 	"hkg-msa-collector/model"
+	"net/url"
+	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
@@ -19,12 +20,29 @@ func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeReq
 
 	_rsp.Status = &proto.Status{}
 
-    uuid := _req.Name
-    for _,kw := range _req.Keyword {
-        uuid += kw
-    }
+	if "" == _req.Name {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "name is required"
+		return nil
+	}
+
+	if "" == _req.Address {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "address is required"
+		return nil
+	}
+
+	u, err := url.Parse(_req.Address)
+	if nil != err {
+		return err
+	}
+
+	uuid := _req.Name + u.Hostname()
+	for _, kw := range _req.Keyword {
+		uuid += kw
+	}
 	document := &model.Document{
-        ID: model.ToUUID(uuid),
+		ID:      model.ToUUID(uuid),
 		Name:    _req.Name,
 		Keyword: _req.Keyword,
 		Address: _req.Address,
@@ -35,17 +53,17 @@ func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeReq
 	},
 	)
 
-    var daoErr error
+	var daoErr error
 	c.OnHTML(_req.Attribute, func(e *colly.HTMLElement) {
 		text, err := e.DOM.Html()
 		if nil != err {
 			logger.Error(err)
 			return
 		}
-        document.CrawledAt = time.Now()
-        document.RawText = text
-        dao := model.NewDocumentDAO(nil)
-        daoErr = dao.InsertOne(document)
+		document.CrawledAt = time.Now()
+		document.RawText = text
+		dao := model.NewDocumentDAO(nil)
+		daoErr = dao.InsertOne(document)
 	})
 
 	c.OnError(func(r *colly.Response, e error) {
@@ -85,9 +103,11 @@ func (this *Document) List(_ctx context.Context, _req *proto.ListRequest, _rsp *
 	_rsp.Entity = make([]*proto.DocumentEntity, len(ary))
 	for i, v := range ary {
 		_rsp.Entity[i] = &proto.DocumentEntity{
+			Uuid:      v.ID,
 			Name:      v.Name,
 			Address:   v.Address,
 			RawText:   v.RawText,
+			Keyword:   v.Keyword,
 			CrawledAt: v.CrawledAt.Unix(),
 		}
 	}
