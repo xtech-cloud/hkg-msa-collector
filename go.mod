@@ -3,7 +3,7 @@ module hkg-msa-collector
 go 1.13
 
 require (
-	github.com/PuerkitoBio/goquery v1.6.1 // indirect
+	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.3.5 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -19,7 +19,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/temoto/robotstxt v1.1.2 // indirect
-	github.com/xtech-cloud/hkg-msp-collector v0.4.0
+	github.com/xtech-cloud/hkg-msp-collector v1.5.1
 	go.mongodb.org/mongo-driver v1.5.0
 	google.golang.org/genproto v0.0.0-20191216164720-4f79533eabd1
 	gopkg.in/yaml.v2 v2.4.0

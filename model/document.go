@@ -14,9 +14,10 @@ const (
 type Document struct {
 	ID        string    `bson:"_id"`
 	Name      string    `bason:"name"`
-	Keyword   []string    `bason:"keyword"`
+	Keyword   []string  `bason:"keyword"`
 	Address   string    `bason:"address"`
 	RawText   string    `bason:"rawText"`
+	TidyText   string    `bason:"tidyText"`
 	CrawledAt time.Time `bason:"crawledAt"`
 }
 
@@ -36,25 +37,29 @@ func NewDocumentDAO(_conn *Conn) *DocumentDAO {
 	}
 }
 
-func (this *DocumentDAO) InsertOne(_doc *Document) (_err error) {
+func (this *DocumentDAO) UpsertOne(_doc *Document) (_err error) {
 	_err = nil
 
 	ctx, cancel := NewContext()
 	defer cancel()
 
-	document, err := bson.Marshal(_doc)
-	if nil != err {
-		_err = err
-		return
+	filter := bson.D{{"_id", _doc.ID}}
+	update := bson.D{
+		{"$set", bson.D{
+			{"name", _doc.Name},
+			{"keyword", _doc.Keyword},
+			{"address", _doc.Address},
+			{"rawText", _doc.RawText},
+			{"tidyText", _doc.TidyText},
+			{"crawledAt", _doc.CrawledAt},
+		}},
 	}
 
-	_, err = this.conn.DB.Collection(DocumentCollectionName).InsertOne(ctx, document)
-	if nil != err {
-		// 忽略键重复的错误
-		if mongo.IsDuplicateKeyError(err) {
-			err = nil
-		}
+	upsert := true
+	options := &options.UpdateOptions{
+		Upsert: &upsert,
 	}
+    _, err := this.conn.DB.Collection(DocumentCollectionName).UpdateOne(ctx, filter, update, options)
 	_err = err
 	return
 }
@@ -101,11 +106,11 @@ func (this *DocumentDAO) UpdateOne(_doc *Document) error {
 	ctx, cancel := NewContext()
 	defer cancel()
 
-	filter := bson.D{{"name", _doc.Name}}
+	filter := bson.D{{"_id", _doc.ID}}
 	update := bson.D{
 		{"$set", bson.D{
-			{"rawText", _doc.RawText},
-			{"crawledAt", _doc.CrawledAt},
+			//{"rawText", _doc.RawText},
+			{"tidyText", _doc.TidyText},
 		}},
 	}
 	_, err := this.conn.DB.Collection(DocumentCollectionName).UpdateOne(ctx, filter, update)
@@ -113,4 +118,18 @@ func (this *DocumentDAO) UpdateOne(_doc *Document) error {
 		return err
 	}
 	return nil
+}
+
+func (this *DocumentDAO) FindOne(_id string) (*Document, error) {
+	ctx, cancel := NewContext()
+	defer cancel()
+
+	filter := bson.D{{"_id", _id}}
+	res := this.conn.DB.Collection(DocumentCollectionName).FindOne(ctx, filter)
+	if res.Err() == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	var document Document
+	err := res.Decode(&document)
+	return &document, err
 }

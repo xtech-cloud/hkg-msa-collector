@@ -497,6 +497,10 @@ github.com/xtech-cloud/hkg-msp-collector v0.3.0 h1:A/Db+C7aOnf1SYW0Ve8Mu3hVjMGi8
 github.com/xtech-cloud/hkg-msp-collector v0.3.0/go.mod h1:y+j4QU9E3cxhnmoRdxTUxGV3FiIMNREuYo+A9LDXpvE=
 github.com/xtech-cloud/hkg-msp-collector v0.4.0 h1:HXRUuN/I7MGCCgvreNAMu1wjeDQ/li4yWaMJQLO/wt0=
 github.com/xtech-cloud/hkg-msp-collector v0.4.0/go.mod h1:y+j4QU9E3cxhnmoRdxTUxGV3FiIMNREuYo+A9LDXpvE=
+github.com/xtech-cloud/hkg-msp-collector v0.5.0 h1:0iN+bmLyAGAyZ3sum+6xvZxIVLMpxTKUE6u4dBWotV0=
+github.com/xtech-cloud/hkg-msp-collector v0.5.0/go.mod h1:y+j4QU9E3cxhnmoRdxTUxGV3FiIMNREuYo+A9LDXpvE=
+github.com/xtech-cloud/hkg-msp-collector v1.5.1 h1:SRMzJvzFc5KAHSMG/A7nSozOFFmfiP3C7VRhe9YxRck=
+github.com/xtech-cloud/hkg-msp-collector v1.5.1/go.mod h1:y+j4QU9E3cxhnmoRdxTUxGV3FiIMNREuYo+A9LDXpvE=
 github.com/xtech-cloud/hkg-msp-metatable v0.5.0 h1:7Tx+HLsR4MGmaZJwYfdGebu/31ieaFP4LabzRojDCZc=
 github.com/xtech-cloud/hkg-msp-metatable v0.5.0/go.mod h1:xqQP0jiT13aaIXqWV6mX8Usu8iijtfbVud9IwCHDwkA=
 github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d h1:splanxYIlg+5LfHAM6xpdFEAYOk8iySO56hMFq6uLyA=
