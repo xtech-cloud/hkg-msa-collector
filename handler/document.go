@@ -19,6 +19,13 @@ import (
 
 type Document struct{}
 
+func (this *Document) trimSpace(_s string) string {
+	s := strings.ReplaceAll(_s, "\u00A0", "\u0020")
+	text := strings.TrimSpace(s)
+	reg := regexp.MustCompile("\\s+")
+	return reg.ReplaceAllString(text, "")
+}
+
 func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeRequest, _rsp *proto.BlankResponse) error {
 	logger.Infof("Received Document.Scrape, req is %v", _req)
 
@@ -119,18 +126,12 @@ func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest
 		}
 		if "text" == rType[1] {
 			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
-				text := strings.TrimSpace(s.Text())
-				reg := regexp.MustCompile("\\s+")
-				text = reg.ReplaceAllString(text, "")
-				jsonDoc[v] = text
+				jsonDoc[v] = this.trimSpace(s.Text())
 			})
 		} else if "ary" == rType[1] {
 			jsonValue := make([]string, 0)
 			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
-				text := strings.TrimSpace(s.Text())
-				reg := regexp.MustCompile("\\s+")
-				text = reg.ReplaceAllString(text, "")
-				jsonValue = append(jsonValue, text)
+				jsonValue = append(jsonValue, this.trimSpace(s.Text()))
 				jsonDoc[v] = jsonValue
 			})
 		} else if "map" == rType[1] {
@@ -153,16 +154,52 @@ func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest
 					siblingKey = s
 				} else if s.HasClass(valueClass) {
 					if nil != siblingKey {
-						reg := regexp.MustCompile("\\s+")
-						key := strings.ReplaceAll(siblingKey.Text(), "\u00A0", "\u0020")
-						key = strings.TrimSpace(key)
-						key = reg.ReplaceAllString(key, "")
-						value := strings.ReplaceAll(s.Text(), "\u00A0", "\u0020")
-						value = strings.TrimSpace(value)
-						value = reg.ReplaceAllString(value, "")
-						jsonValue[key] = value
+						jsonValue[this.trimSpace(siblingKey.Text())] = this.trimSpace(s.Text())
 					}
 				}
+			})
+			jsonDoc[v] = jsonValue
+		} else if "images" == rType[1] {
+			jsonValue := make([]map[string]string, 0)
+			regKey := regexp.MustCompile(`\$pk\=(.*?);`)
+			regValue := regexp.MustCompile(`\$pv\=(.*?);`)
+			rKey := regKey.FindStringSubmatch(k)
+			rValue := regValue.FindStringSubmatch(k)
+			key := ""
+			value := ""
+			if len(rKey) >= 2 {
+				key = rKey[1]
+			}
+			if len(rValue) >= 2 {
+				value = rValue[1]
+			}
+			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
+				title, exist := s.Attr(key)
+				if !exist {
+					return
+				}
+				link, exist := s.Attr(value)
+				if !exist {
+					return
+				}
+				c := colly.NewCollector(func(c *colly.Collector) {
+					extensions.RandomUserAgent(c)
+				},
+				)
+
+				c.OnHTML(`img[id="imgPicture"]`, func(e *colly.HTMLElement) {
+					src := e.Attr("src")
+                    pair := make(map[string]string)
+                    pair["title"] = title
+                    pair["src"] = src 
+                    jsonValue = append(jsonValue, pair)
+				})
+
+				c.OnError(func(r *colly.Response, e error) {
+					logger.Error(e)
+				})
+
+				c.Visit(_req.Host + link)
 			})
 			jsonDoc[v] = jsonValue
 		}

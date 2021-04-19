@@ -3,10 +3,19 @@ package main
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/extensions"
 	"regexp"
 	"strings"
 	"testing"
 )
+
+func trimSpace(_s string) string {
+	s := strings.ReplaceAll(_s, "\u00A0", "\u0020")
+	text := strings.TrimSpace(s)
+	reg := regexp.MustCompile("\\s+")
+	return reg.ReplaceAllString(text, "")
+}
 
 func TestTidy(t *testing.T) {
 
@@ -819,6 +828,7 @@ Su Yu
 	rule[`$t=map;$e=[class^="basicInfo-item"];$pk=dt[class="basicInfo-item name"];$pv=dd[class="basicInfo-item value"];`] = "profile"
 	rule[`$t=map;$e=div[class="info"]>span;$pk=span[class="name"];$pv=span[class="title"];`] = "relation"
 	rule[`$t=ary;$e=div[class="para"];`] = "para"
+	rule[`$t=images;$e=a[class="image-link"];$pk=title;$pv=href;`] = "images"
 	for k, v := range rule {
 		fmt.Println("---------------------------")
 		fmt.Println(v)
@@ -835,17 +845,11 @@ Su Yu
 		}
 		if "text" == rType[1] {
 			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
-				text := strings.TrimSpace(s.Text())
-				reg := regexp.MustCompile("\\s+")
-				text = reg.ReplaceAllString(text, "")
-				fmt.Println(text)
+				fmt.Println(s.Text())
 			})
 		} else if "ary" == rType[1] {
 			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
-				text := strings.TrimSpace(s.Text())
-				reg := regexp.MustCompile("\\s+")
-				text = reg.ReplaceAllString(text, "")
-				fmt.Println(text)
+				fmt.Println(trimSpace(s.Text()))
 			})
 		} else if "map" == rType[1] {
 			regKeyClass := regexp.MustCompile(`\$pk\=\w*\[class\=\"(.*?)\"`)
@@ -865,17 +869,46 @@ Su Yu
 				if s.HasClass(keyClass) {
 					siblingKey = s
 				} else if s.HasClass(valueClass) {
-					if nil != siblingKey {
-						reg := regexp.MustCompile("\\s+")
-						key := strings.ReplaceAll(siblingKey.Text(), "\u00A0", "\u0020")
-						key = strings.TrimSpace(key)
-						key = reg.ReplaceAllString(key, "")
-						value := strings.ReplaceAll(s.Text(), "\u00A0", "\u0020")
-						value = strings.TrimSpace(value)
-						value = reg.ReplaceAllString(value, "")
-						fmt.Println(key + ": " + value)
-					}
+					fmt.Println(trimSpace(siblingKey.Text()) + ": " + trimSpace(s.Text()))
 				}
+			})
+		} else if "images" == rType[1] {
+			regKey := regexp.MustCompile(`\$pk\=(.*?);`)
+			regValue := regexp.MustCompile(`\$pv\=(.*?);`)
+			rKey := regKey.FindStringSubmatch(k)
+			rValue := regValue.FindStringSubmatch(k)
+			key := ""
+			value := ""
+			if len(rKey) >= 2 {
+				key = rKey[1]
+			}
+			if len(rValue) >= 2 {
+				value = rValue[1]
+			}
+			doc.Find(rElement[1]).Each(func(i int, s *goquery.Selection) {
+				title, exist := s.Attr(key)
+				if exist {
+					fmt.Println(trimSpace(title))
+				}
+                link, exist := s.Attr(value)
+				if exist {
+					fmt.Println(trimSpace(link))
+				}
+				c := colly.NewCollector(func(c *colly.Collector) {
+					extensions.RandomUserAgent(c)
+				},
+				)
+
+                c.OnHTML(`img[id="imgPicture"]`, func(e *colly.HTMLElement) {
+					src := e.Attr("src")
+                    fmt.Println(src)
+				})
+
+				c.OnError(func(r *colly.Response, e error) {
+                    fmt.Println(e)
+				})
+
+                c.Visit("https://baike.baidu.com" + link)
 			})
 		}
 	}
