@@ -26,7 +26,7 @@ func (this *Document) trimSpace(_s string) string {
 	return reg.ReplaceAllString(text, "")
 }
 
-func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeRequest, _rsp *proto.BlankResponse) error {
+func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeRequest, _rsp *proto.DocumentScrapeResponse) error {
 	logger.Infof("Received Document.Scrape, req is %v", _req)
 
 	_rsp.Status = &proto.Status{}
@@ -82,10 +82,12 @@ func (this *Document) Scrape(_ctx context.Context, _req *proto.DocumentScrapeReq
 	})
 
 	c.Visit(_req.Address)
+
+    _rsp.Uuid = document.ID
 	return daoErr
 }
 
-func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest, _rsp *proto.BlankResponse) error {
+func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest, _rsp *proto.DocumentTidyResponse) error {
 	logger.Infof("Received Document.Tidy, req is %v", _req)
 
 	_rsp.Status = &proto.Status{}
@@ -189,10 +191,10 @@ func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest
 
 				c.OnHTML(`img[id="imgPicture"]`, func(e *colly.HTMLElement) {
 					src := e.Attr("src")
-                    pair := make(map[string]string)
-                    pair["title"] = title
-                    pair["src"] = src 
-                    jsonValue = append(jsonValue, pair)
+					pair := make(map[string]string)
+					pair["title"] = title
+					pair["src"] = src
+					jsonValue = append(jsonValue, pair)
 				})
 
 				c.OnError(func(r *colly.Response, e error) {
@@ -212,6 +214,7 @@ func (this *Document) Tidy(_ctx context.Context, _req *proto.DocumentTidyRequest
 	document.TidyText = string(jsonStr)
 	err = dao.UpdateOne(document)
 
+    _rsp.Uuid = document.ID
 	return err
 }
 
@@ -236,7 +239,7 @@ func (this *Document) List(_ctx context.Context, _req *proto.ListRequest, _rsp *
 	}
 	_rsp.Total = total
 
-	ary, err := dao.List(offset, count)
+	total, ary, err := dao.List(offset, count, _req.Filter)
 	if nil != err {
 		return err
 	}
@@ -254,4 +257,26 @@ func (this *Document) List(_ctx context.Context, _req *proto.ListRequest, _rsp *
 		}
 	}
 	return nil
+}
+
+func (this *Document) Delete(_ctx context.Context, _req *proto.DocumentDeleteRequest, _rsp *proto.DocumentDeleteResponse) error {
+	logger.Infof("Received Document.Delete, req is %v", _req)
+
+	_rsp.Status = &proto.Status{}
+    _rsp.Uuid = _req.Uuid
+
+	dao := model.NewDocumentDAO(nil)
+
+	return dao.DeleteOne(_req.Uuid)
+}
+
+func (this *Document) BatchDelete(_ctx context.Context, _req *proto.DocumentBatchDeleteRequest, _rsp *proto.DocumentBatchDeleteResponse) error {
+	logger.Infof("Received Document.Delete, req is %v", _req)
+
+	_rsp.Status = &proto.Status{}
+    _rsp.Uuid = _req.Uuid
+
+	dao := model.NewDocumentDAO(nil)
+
+	return dao.DeleteMany(_req.Uuid)
 }

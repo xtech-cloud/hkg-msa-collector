@@ -71,7 +71,7 @@ func (this *DocumentDAO) Count() (int64, error) {
 	return count, err
 }
 
-func (this *DocumentDAO) List(_offset int64, _count int64) ([]*Document, error) {
+func (this *DocumentDAO) List(_offset int64, _count int64, _filter map[string]string) (int64, []*Document, error) {
 	ctx, cancel := NewContext()
 	defer cancel()
 
@@ -86,7 +86,7 @@ func (this *DocumentDAO) List(_offset int64, _count int64) ([]*Document, error) 
 
 	cur, err := this.conn.DB.Collection(DocumentCollectionName).Find(ctx, filter, findOptions)
 	if nil != err {
-		return make([]*Document, 0), err
+		return 0, make([]*Document, 0), err
 	}
 	defer cur.Close(ctx)
 
@@ -95,11 +95,11 @@ func (this *DocumentDAO) List(_offset int64, _count int64) ([]*Document, error) 
 		var document Document
 		err = cur.Decode(&document)
 		if nil != err {
-			return make([]*Document, 0), err
+			return 0, make([]*Document, 0), err
 		}
 		ary = append(ary, &document)
 	}
-	return ary, nil
+	return 0, ary, nil
 }
 
 func (this *DocumentDAO) UpdateOne(_doc *Document) error {
@@ -132,4 +132,22 @@ func (this *DocumentDAO) FindOne(_id string) (*Document, error) {
 	var document Document
 	err := res.Decode(&document)
 	return &document, err
+}
+
+func (this *DocumentDAO) DeleteOne(_id string) (error) {
+	ctx, cancel := NewContext()
+	defer cancel()
+
+	filter := bson.D{{"_id", _id}}
+	_, err  := this.conn.DB.Collection(DocumentCollectionName).DeleteOne(ctx, filter)
+	return err
+}
+
+func (this *DocumentDAO) DeleteMany(_id []string) (error) {
+	ctx, cancel := NewContext()
+	defer cancel()
+
+    filter := bson.M{"_id":  bson.M{"$in": _id}}
+	_, err  := this.conn.DB.Collection(DocumentCollectionName).DeleteMany(ctx, filter)
+	return err
 }
