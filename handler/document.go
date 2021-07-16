@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"hkg-msa-collector/model"
 	"net/url"
@@ -250,8 +251,8 @@ func (this *Document) List(_ctx context.Context, _req *proto.ListRequest, _rsp *
 			Uuid:      v.ID,
 			Name:      v.Name,
 			Address:   v.Address,
-			RawText:   v.RawText,
-			TidyText:  v.TidyText,
+			RawText:   base64.StdEncoding.EncodeToString([]byte(v.RawText)),
+			TidyText:   base64.StdEncoding.EncodeToString([]byte(v.TidyText)),
 			Keyword:   v.Keyword,
 			CrawledAt: v.CrawledAt.Unix(),
 		}
